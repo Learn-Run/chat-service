@@ -10,6 +10,8 @@ import com.example.chatservice.domain.dto.out.ChatRoomListResDto;
 import com.example.chatservice.domain.dto.out.CreateChatRoomResDto;
 import com.example.chatservice.domain.entiy.ChatMessage;
 import com.example.chatservice.domain.entiy.ChatRoom;
+import com.example.chatservice.common.config.WebSocketEventListener;
+import com.example.chatservice.domain.application.ChatEventService;
 import com.example.chatservice.domain.infrastructure.ChatMessageRepository;
 import com.example.chatservice.domain.infrastructure.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final MongoTemplate mongoTemplate;
+    private final WebSocketEventListener webSocketEventListener;
+    private final ChatEventService chatEventService;
 
     @Transactional
     @Override
@@ -51,6 +57,14 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
         ChatRoom newRoom = dto.toEntity();
         chatRoomRepository.save(newRoom);
+
+        // 채팅방 생성 이벤트 저장
+        chatEventService.saveRoomCreatedEvent(
+                newRoom.getChatRoomUuid(),
+                dto.getParticipantAUuid(),
+                dto.getParticipantAUuid(),
+                dto.getParticipantBUuid()
+        );
 
         return CreateChatRoomResDto.builder()
                 .chatRoomUuid(newRoom.getChatRoomUuid())
@@ -92,5 +106,28 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 .toList();
 
         return CursorPage.of(dtoList, page.getHasNext(), page.getNextCursor());
+    }
+
+    @Override
+    public Map<String, Object> getChatRoomStatus(String chatRoomUuid, String memberUuid) {
+        // 채팅방 존재 여부 확인
+        ChatRoom chatRoom = chatRoomRepository.findByChatRoomUuid(chatRoomUuid)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채팅방입니다."));
+        
+        // 채팅방 참여자 확인
+        if (!chatRoom.getParticipantAUuid().equals(memberUuid) && 
+            !chatRoom.getParticipantBUuid().equals(memberUuid)) {
+            throw new IllegalArgumentException("해당 채팅방의 참여자가 아닙니다.");
+        }
+        
+        // 연결된 사용자 목록 조회
+        Set<String> connectedUsers = webSocketEventListener.getConnectedUsersInChatRoom(chatRoomUuid);
+        
+        return Map.of(
+                "chatRoomUuid", chatRoomUuid,
+                "connectedUsers", connectedUsers,
+                "totalParticipants", 2, // 1:1 채팅이므로 항상 2
+                "isUserConnected", webSocketEventListener.isUserInChatRoom(chatRoomUuid, memberUuid)
+        );
     }
 }

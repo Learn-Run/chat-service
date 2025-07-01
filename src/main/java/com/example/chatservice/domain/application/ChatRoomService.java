@@ -9,6 +9,8 @@ import com.example.chatservice.domain.dto.out.ChatRoomListResDto;
 import com.example.chatservice.domain.dto.out.ChatMessageResDto;
 import com.example.chatservice.domain.dto.out.CreateChatRoomResDto;
 
+import java.util.Map;
+
 public interface ChatRoomService {
 
     CreateChatRoomResDto createOrGetRoom(CreateChatRoomReqDto dto);
@@ -20,4 +22,6 @@ public interface ChatRoomService {
     ChatRoomListResDto getChatRoom(String memberUuid,String chatRoomUuid);
 
     CursorPage<ChatMessageResDto> getChatMessages(String chatRoomUuid, ChatMessageReqDto dto);
+    
+    Map<String, Object> getChatRoomStatus(String chatRoomUuid, String memberUuid);
 }

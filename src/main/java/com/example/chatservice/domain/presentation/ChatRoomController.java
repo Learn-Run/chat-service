@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/chat-room")
 @Tag(name = "ChatRoom", description = "채팅방 관련 API")
@@ -176,5 +178,29 @@ public class ChatRoomController {
             @ModelAttribute ChatMessageReqDto chatMessageReqDto
     ) {
         return new BaseResponseEntity<>(chatRoomService.getChatMessages(chatRoomUuid, chatMessageReqDto));
+    }
+
+    @Operation(
+            summary = "채팅방 연결 상태 조회",
+            description = """
+            특정 채팅방의 사용자 연결 상태를 조회합니다.
+
+            [요청 경로]
+            - GET /api/v1/chat-room/{chatRoomUuid}/status
+
+            [요청 헤더]
+            - X-Member-UUID: (String) 조회 요청 회원 UUID
+
+            [응답 필드]
+            - connectedUsers: 연결된 사용자 목록
+            - totalParticipants: 전체 참여자 수
+        """
+    )
+    @GetMapping("/{chatRoomUuid}/status")
+    public BaseResponseEntity<Map<String, Object>> getChatRoomStatus(
+            @PathVariable String chatRoomUuid,
+            @RequestHeader("X-Member-UUID") String memberUuid
+    ) {
+        return new BaseResponseEntity<>(chatRoomService.getChatRoomStatus(chatRoomUuid, memberUuid));
     }
 }

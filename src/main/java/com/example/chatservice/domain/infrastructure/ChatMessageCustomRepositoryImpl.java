@@ -62,7 +62,19 @@ public class ChatMessageCustomRepositoryImpl implements ChatMessageCustomReposit
             criteria = criteria.and("sentAt").lt(chatMessageReqDto.getCursor());
         }
 
-        log.info("cursor: {}", cursor);
+        // 메시지 타입 필터링
+        if (chatMessageReqDto.getMessageTypes() != null && !chatMessageReqDto.getMessageTypes().isEmpty()) {
+            criteria = criteria.and("messageType").in(chatMessageReqDto.getMessageTypes());
+        }
+
+        // 시스템 이벤트 포함 여부
+        if (chatMessageReqDto.getIncludeSystemEvents() != null && !chatMessageReqDto.getIncludeSystemEvents()) {
+            criteria = criteria.and("messageType").is("CHAT"); // 일반 채팅 메시지만
+        }
+
+        log.info("cursor: {}, messageTypes: {}, includeSystemEvents: {}", 
+                cursor, chatMessageReqDto.getMessageTypes(), chatMessageReqDto.getIncludeSystemEvents());
+        
         Query query = new Query(criteria)
                 .with(Sort.by(Sort.Direction.ASC, "sentAt"))
                 .limit(size + 1);  // hasNext 판별 위해 +1

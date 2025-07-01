@@ -43,6 +43,8 @@ public class SendChatMessageReqDto {
                 .content(content)
                 .sentAt(LocalDateTime.now())
                 .read(false)
+                .messageType(com.example.chatservice.domain.enums.MessageType.CHAT)
+                .eventData(null)
                 .build();
     }
 
